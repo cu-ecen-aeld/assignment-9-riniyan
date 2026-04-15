@@ -1,0 +1,36 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          aesdsocket
+# Required-Start:    $network
+# Required-Stop:     $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: AESD Socket Server
+### END INIT INFO
+
+DAEMON=/usr/bin/aesdsocket
+NAME=aesdsocket
+PIDFILE=/var/run/${NAME}.pid
+
+case "$1" in
+  start)
+    echo "Starting $NAME"
+    start-stop-daemon --start --background --make-pidfile \
+      --pidfile "$PIDFILE" --exec "$DAEMON" -- -d
+    ;;
+  stop)
+    echo "Stopping $NAME"
+    start-stop-daemon --stop --pidfile "$PIDFILE" --retry=TERM/5/KILL/5 || true
+    rm -f "$PIDFILE"
+    ;;
+  restart)
+    "$0" stop
+    "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac
+
+exit 0

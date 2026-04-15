@@ -1,0 +1,50 @@
+#!/bin/sh
+
+faulty_device="faulty"
+faulty_mode="664"
+
+if grep -q '^staff:' /etc/group; then
+    group="staff"
+else
+    group="wheel"
+fi
+
+misc_modules_load() {
+    # Load hello module
+    modprobe hello || exit 1
+
+    # Load faulty module using insmod to avoid conflict with CONFIG_MD_FAULTY
+    insmod /lib/modules/$(uname -r)/extra/faulty.ko || exit 1
+    major=$(awk "\$2==\"$faulty_device\" {print \$1}" /proc/devices)
+    if [ ! -z ${major} ]; then
+        rm -f /dev/${faulty_device}
+        mknod /dev/${faulty_device} c $major 0
+        chgrp $group /dev/${faulty_device}
+        chmod $faulty_mode /dev/${faulty_device}
+    fi
+}
+
+misc_modules_unload() {
+    # Unload faulty
+    rmmod faulty
+    rm -f /dev/${faulty_device}
+
+    # Unload hello
+    rmmod hello
+}
+
+case "$1" in
+    start)
+        echo "Loading misc-modules"
+        misc_modules_load
+        ;;
+    stop)
+        echo "Unloading misc-modules"
+        misc_modules_unload
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+esac
+
+exit 0
